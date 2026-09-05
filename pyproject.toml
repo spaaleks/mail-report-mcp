@@ -1,0 +1,37 @@
+[project]
+name = "mail-report"
+version = "1.0.0"
+description = "MCP server over streamable HTTP that renders Markdown reports to email-safe HTML and delivers them over SMTP, with queued retries and bundle uploads."
+license = "MIT"
+license-files = ["LICENSE.md"]
+requires-python = ">=3.11"
+dependencies = [
+    "cairosvg>=2.9.0",
+    "mcp>=2.1.1,<3",
+    "python-multipart>=0.0.20",
+    "uvicorn[standard]>=0.38.0",
+]
+
+[project.scripts]
+mail-report = "mail_report.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mail_report"]
+
+[tool.ruff]
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "SIM", "UP", "C4", "PIE", "RET", "ARG", "T20"]
+ignore = ["SIM105", "RET504"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/mail_report/routes.py" = ["ARG001"]
+"tests/integration.py" = ["T201", "SIM117"]
+"src/mail_report/render/guide.py" = ["E501"]
+"tests/sample_report.py" = ["E501"]

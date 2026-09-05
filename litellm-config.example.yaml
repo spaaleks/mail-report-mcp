@@ -1,0 +1,7 @@
+mcp_servers:
+  mail_report:
+    url: "http://mail-report-mcp:8000/mcp"
+    transport: "http"
+    description: "Render Markdown reports to email-safe HTML and send them over SMTP."
+    auth_type: "bearer_token"
+    auth_value: os.environ/MCP_AUTH_TOKEN

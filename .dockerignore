@@ -1,0 +1,16 @@
+.git
+.gitignore
+.gitlab-ci.yml
+.env
+.venv
+docker-compose.yml
+Dockerfile
+.dockerignore
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.idea/
+.vscode/
+.DS_Store

@@ -1,0 +1,21 @@
+lint:
+  stage: lint
+  image: ghcr.io/astral-sh/uv:0.9-python3.13-bookworm-slim
+  variables:
+    UV_CACHE_DIR: .uv-cache
+  cache:
+    key: uv-lint
+    paths:
+      - .uv-cache
+  script:
+    - uvx ruff check --output-format=gitlab src/ tests/ > gl-code-quality-report.json || status=$?
+    - uvx ruff check --output-format=concise src/ tests/
+    - exit ${status:-0}
+  artifacts:
+    when: always
+    expire_in: 1 week
+    reports:
+      codequality: gl-code-quality-report.json
+  rules:
+    - exists:
+        - pyproject.toml
