@@ -1,0 +1,90 @@
+docker-build:
+  stage: build-image
+  image: docker:latest
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - |
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        moving="$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG"
+      elif [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        moving="$CI_REGISTRY_IMAGE:latest"
+      else
+        moving="$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+      fi
+      commit="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      echo "building $commit and $moving"
+      docker build --pull -t "$commit" -t "$moving" .
+      docker push "$commit"
+      docker push "$moving"
+  rules:
+    - exists:
+        - Dockerfile
+
+docker-push-hub:
+  stage: publish
+  image: docker:latest
+  needs:
+    - docker-build
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker login -u "$REMOTE_REGISTRY_USER" -p "$REMOTE_REGISTRY_PASSWORD" $REMOTE_REGISTRY
+  script:
+    - |
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        target="$REMOTE_REGISTRY_IMAGE:$CI_COMMIT_TAG"
+      elif [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        target="$REMOTE_REGISTRY_IMAGE:latest"
+      else
+        target="$REMOTE_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+      fi
+      source="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      docker pull "$source"
+      docker tag "$source" "$target"
+      docker tag "$source" "$REMOTE_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      docker push "$target"
+      docker push "$REMOTE_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+  rules:
+    - if: >-
+        ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "dev"
+          || $CI_COMMIT_BRANCH == "release" || $CI_COMMIT_TAG)
+        && $REMOTE_REGISTRY != null
+        && $REMOTE_REGISTRY_USER != null
+        && $REMOTE_REGISTRY_PASSWORD != null
+        && $REMOTE_REGISTRY_IMAGE != null
+      exists:
+        - Dockerfile
+
+.docker-push-quay:
+  stage: publish
+  image: docker:latest
+  needs:
+    - docker-build
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker login -u "$REMOTE_REGISTRY_USER_QUAY" -p "$REMOTE_REGISTRY_PASSWORD_QUAY" $REMOTE_REGISTRY_QUAY
+  script:
+    - |
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        target="$REMOTE_REGISTRY_QUAY/$REMOTE_REGISTRY_IMAGE:$CI_COMMIT_TAG"
+      elif [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        target="$REMOTE_REGISTRY_QUAY/$REMOTE_REGISTRY_IMAGE:latest"
+      else
+        target="$REMOTE_REGISTRY_QUAY/$REMOTE_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+      fi
+      source="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      docker pull "$source"
+      docker tag "$source" "$target"
+      docker tag "$source" "$REMOTE_REGISTRY_QUAY/$REMOTE_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      docker push "$target"
+      docker push "$REMOTE_REGISTRY_QUAY/$REMOTE_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+  rules:
+    - if: >-
+        ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "dev"
+          || $CI_COMMIT_BRANCH == "release" || $CI_COMMIT_TAG)
+        && $REMOTE_REGISTRY_QUAY != null
+        && $REMOTE_REGISTRY_USER_QUAY != null
+        && $REMOTE_REGISTRY_PASSWORD_QUAY != null
+        && $REMOTE_REGISTRY_IMAGE != null
+      exists:
+        - Dockerfile

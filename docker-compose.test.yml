@@ -1,0 +1,59 @@
+services:
+    mailpit:
+        image: axllent/mailpit:latest
+        environment:
+            MP_SMTP_BIND_ADDR: "0.0.0.0:2525"
+            MP_SMTP_AUTH_ACCEPT_ANY: "1"
+            MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+
+    mail-report-mcp:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        environment:
+            MCP_PORT: "8000"
+            MCP_AUTH_TOKEN: "integration-token"
+            MCP_LOG_LEVEL: "INFO"
+            MAIL_REPORT_MAX_ATTACHMENT_BYTES: "1048576"
+            MAIL_REPORT_MAX_TOTAL_BYTES: "2097152"
+            MAIL_REPORT_PILLS: "Passed=#2f855a,In Progress=#2b6cb0"
+            SMTP_HOST: "mailpit"
+            SMTP_PORT: "2525"
+            SMTP_SECURITY: "none"
+            SMTP_FROM: "reports@example.test"
+            SMTP_TO: "inbox@example.test"
+        depends_on:
+            - mailpit
+
+    mail-report-locked:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        environment:
+            MCP_PORT: "8000"
+            MCP_AUTH_TOKEN: "integration-token"
+            MAIL_REPORT_ALLOW_TO_ARG: "false"
+            MAIL_REPORT_ALLOWED_RECIPIENTS: "*@example.test"
+            SMTP_HOST: "mailpit"
+            SMTP_PORT: "2525"
+            SMTP_SECURITY: "none"
+            SMTP_FROM: "reports@example.test"
+            SMTP_TO: "locked@example.test"
+        depends_on:
+            - mailpit
+
+    tester:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        entrypoint: ["python", "/app/tests/integration.py"]
+        environment:
+            MCP_BASE_URL: "http://mail-report-mcp:8000"
+            LOCKED_BASE_URL: "http://mail-report-locked:8000"
+            MCP_AUTH_TOKEN: "integration-token"
+            MAILPIT_API: "http://mailpit:8025"
+            MAIL_REPORT_MAX_ATTACHMENT_BYTES: "1048576"
+            ARTIFACT_DIR: "/tmp/artifacts"
+        depends_on:
+            - mail-report-mcp
+            - mail-report-locked

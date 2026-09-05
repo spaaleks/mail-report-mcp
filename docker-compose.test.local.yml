@@ -1,0 +1,5 @@
+services:
+    mailpit:
+        ports:
+            - "${MAILPIT_SMTP_PORT:-2525}:2525"
+            - "${MAILPIT_UI_PORT:-8125}:8025"

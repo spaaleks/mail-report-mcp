@@ -1,0 +1,15 @@
+stages:
+  - lint
+  - test
+  - build-image
+  - publish
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+include:
+  - local: .gitlab/lint.yml
+  - local: .gitlab/test.yml
+  - local: .gitlab/build.yml
